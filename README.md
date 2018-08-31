@@ -5,3 +5,8 @@ features:
 - cross port digipeating
 - aprs digipeater interworking
 - periodical beacons
+
+easy install and run:
+make
+./axdigi2018
+
