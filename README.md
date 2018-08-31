@@ -7,6 +7,6 @@ features:
 - periodical beacons
 
 easy install and run:
-make
-./axdigi2018
+* make
+* ./axdigi2018
 
