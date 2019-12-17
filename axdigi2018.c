@@ -452,8 +452,9 @@ int main(int argc, char *argv[])
 
         outIfIndex = digipeat(buf+1, &ax25header, saddr_ll.sll_ifindex);
 
-        if (outIfIndex >= 0)
+        if (outIfIndex > 0)
         {
+            parse_ax25_header(buf+1, size-1, &ax25header); // re-parse packet header
             print_path(&ax25header);
             saddr_ll.sll_ifindex = outIfIndex;
             if (sendto(skt, buf, size, 0, (struct sockaddr *)&saddr_ll, sizeof(saddr_ll)) == -1)
