@@ -35,7 +35,9 @@
 
 #include "hexdump.h"
 
-#define VERSION "2017-DEC-06"
+#ifndef VERSION
+#define VERSION "development"
+#endif // VERSION
 
 #define DEFAULT_BEACON_INTERVAL 300
 #define DEFAULT_BEACON_DEST "BEACON"
@@ -391,7 +393,8 @@ void show_license(FILE *out) {
 }
 
 void show_usage(FILE *out) {
-    fprintf(out, "axdigi: usage: axdigi [ --enable-beacon ] [ --beacon-text=text ] [ --beacon-dest=callsign ] [ --beacon-interval=interval ]\n");
+  fprintf(out, "axdigi: usage: axdigi [ --enable-beacon ] [ --beacon-text=text "
+               "] [ --beacon-dest=callsign ] [ --beacon-interval=interval ]\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -412,9 +415,9 @@ int main(int argc, char *argv[]) {
   while ((ch = getopt_long(argc, argv, OPTSTRING, options, &optind)) != -1) {
     switch (ch) {
     case OPT_HELP:
-        show_usage(stdout);
-        exit(0);
-        break;
+      show_usage(stdout);
+      exit(0);
+      break;
 
     case OPT_VERSION:
       show_license(stdout);

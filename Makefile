@@ -1,4 +1,6 @@
+VERSION = $(shell git rev-parse --short HEAD)
 CFLAGS = -g -Wall
+CPPFLAGS = -DVERSION="\"$(VERSION)\""
 
 SRCS =  \
 	axdigi2018.c
