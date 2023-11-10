@@ -44,7 +44,7 @@
 #define DEFAULT_BEACON_TEXT                                                    \
   "axdigi2018 || AX.25 packet radio digipeater || "                            \
   "https://github.com/iddq/axdigi2018"
-#define BEACON_PATH "WIDE1-1", "RFONLY"
+#define DEFAULT_BEACON_PATH "WIDE1-1", "RFONLY"
 
 #define AXALEN 7
 #define CALLSTRLEN                                                             \
@@ -92,15 +92,17 @@ struct ax25_header_s {
 #define OPT_BEACON_INTERVAL 'i'
 #define OPT_BEACON_TEXT 't'
 #define OPT_BEACON_DEST 'd'
+#define OPT_BEACON_PATH 'p'
 #define OPT_HELP 'h'
 #define OPT_VERSION 'v'
-#define OPTSTRING "bi:t:hvd:"
+#define OPTSTRING "bi:t:hvd:p:"
 
 struct option options[] = {
     {"enable-beacon", 0, NULL, OPT_ENABLE_BEACON},
     {"beacon-interval", 1, NULL, OPT_BEACON_INTERVAL},
     {"beacon-text", 1, NULL, OPT_BEACON_TEXT},
     {"beacon-dest", 1, NULL, OPT_BEACON_DEST},
+    {"beacon-path", 1, NULL, OPT_BEACON_PATH},
     {"help", 0, NULL, OPT_HELP},
     {"version", 0, NULL, OPT_VERSION},
 };
@@ -110,13 +112,35 @@ struct config_s {
   int beacon_interval;
   callsign_t beacon_dest;
   char beacon_text[1024];
+  callsign_t beacon_path[AX25_MAX_DIGIS];
+  int beacon_path_count;
 } config;
 
 void config_init(struct config_s *cfg) {
+  callsign_t _beacon_path[] = {DEFAULT_BEACON_PATH};
+  int i;
+
+  cfg->beacon_path_count = sizeof(_beacon_path) / sizeof(callsign_t);
+
   cfg->beacon_enabled = 0;
   cfg->beacon_interval = DEFAULT_BEACON_INTERVAL;
   strncpy(cfg->beacon_dest, DEFAULT_BEACON_DEST, sizeof(cfg->beacon_dest));
   strncpy(cfg->beacon_text, DEFAULT_BEACON_TEXT, sizeof(cfg->beacon_text));
+  memset(cfg->beacon_path, 0, sizeof(cfg->beacon_path));
+  for (i = 0; i < cfg->beacon_path_count; i++) {
+    strncpy(cfg->beacon_path[i], _beacon_path[i], sizeof(callsign_t));
+  }
+}
+
+void config_set_beacon_path(struct config_s *cfg, char *arg) {
+  char *tok;
+  int i = 0;
+
+  tok = strtok(arg, ",");
+  while (tok != NULL) {
+    strncpy(cfg->beacon_path[i++], tok, sizeof(callsign_t));
+    tok = strtok(NULL, ",");
+  }
 }
 
 void ax25_addr2call(unsigned char *bptr, char *callsign) {
@@ -338,12 +362,14 @@ void alarm_handler(int sig) {
 }
 
 int beacon_init(unsigned char *buf) {
-
-  struct ax25_header_s beacon = {"", "", {BEACON_PATH}, 0x03, 0xf0};
-  strncpy(beacon.dst, config.beacon_dest, sizeof(beacon.dst));
-
   int size = 0;
   int i;
+
+  struct ax25_header_s beacon = {"", "", {}, 0x03, 0xf0};
+  strncpy(beacon.dst, config.beacon_dest, sizeof(beacon.dst));
+  for (i = 0; i < config.beacon_path_count; i++) {
+    strncpy(beacon.digi[i], config.beacon_path[i], sizeof(callsign_t));
+  }
 
   *buf = 0;
   size++;
@@ -393,8 +419,10 @@ void show_license(FILE *out) {
 }
 
 void show_usage(FILE *out) {
-  fprintf(out, "axdigi: usage: axdigi [ --enable-beacon ] [ --beacon-text=text "
-               "] [ --beacon-dest=callsign ] [ --beacon-interval=interval ]\n");
+  fprintf(out,
+          "axdigi: usage: axdigi [ --enable-beacon ] [ --beacon-text=text ]"
+          " [ --beacon-dest=callsign ] [ --beacon-interval=interval ]"
+          " [ --beacon-path=digi1,digi2,... ]\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -438,6 +466,10 @@ int main(int argc, char *argv[]) {
 
     case OPT_BEACON_DEST:
       strncpy(config.beacon_dest, optarg, sizeof(config.beacon_dest));
+      break;
+
+    case OPT_BEACON_PATH:
+      config_set_beacon_path(&config, optarg);
       break;
 
     default:
